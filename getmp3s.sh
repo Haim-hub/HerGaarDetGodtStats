@@ -20,9 +20,3 @@ ids=$(echo "$json_data" | jq -r '.data.podcastEpisodes[] | select(.hasVideo == t
 
 # Output the ids to hasVideoTrue.txt
 echo "$ids" >hasVideoTrue.txt
-
-# https://cdn-web.podimo.com/audios/<id>.mp3?Expires=1708994204&KeyName=podimo-audio-web-player-key-2&Signature=apJKmdxmMIvIvG6Dij4trc93lC4
-# Download the mp3s where the ids are in hasVideoFalse.txt
-while read -r id; do
-    wget -O "$id.mp3" "https://cdn-web.podimo.com/audios/$id.mp3?Expires=1708994204&KeyName=podimo-audio-web-player-key-2&Signature=apJKmdxmMIvIvG6Dij4trc93lC4"
-done <hasVideoFalse.txt
