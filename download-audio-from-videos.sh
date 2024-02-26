@@ -40,8 +40,51 @@ while IFS= read -r id; do
         --compressed)
 
     # make sure /episodes exists
-    mkdir -p episodes/audio-episodes
+    mkdir -p episodes/video-episodes/$id
 
-    # download the mp3s
-    echo $response | jq -r '.data.podcastEpisodeStreamMediaById.url' | xargs wget -O "episodes/audio-episodes/$id.mp3"
-done <hasVideoFalse.txt
+    curl 'https://cdn.podimo.com/hls-media/ab4d059b-b37b-40ad-8a37-fd847adc652a/stream_audio_high/stream.m3u8' \
+        -H 'authority: cdn.podimo.com' \
+        -H 'accept: */*' \
+        -H 'accept-language: da-DK,da;q=0.9' \
+        -H 'dnt: 1' \
+        -H 'origin: https://open.podimo.com' \
+        -H 'referer: https://open.podimo.com/' \
+        -H 'sec-ch-ua: "Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"' \
+        -H 'sec-ch-ua-mobile: ?0' \
+        -H 'sec-ch-ua-platform: "Windows"' \
+        -H 'sec-fetch-dest: empty' \
+        -H 'sec-fetch-mode: cors' \
+        -H 'sec-fetch-site: same-site' \
+        -H 'user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36' \
+        --compressed | grep -v "#" >"episodes/video-episodes/$id/stream.m3u8"
+
+    # get all the .ts file names
+    while IFS= read -r line; do
+        if [[ $line == *.ts ]]; then
+            wget -P "episodes/video-episodes/$id" "$m3u8/$line"
+        fi
+    done <hasVideoTrue.txt
+
+    # make directory for all of the .ts files
+    mkdir -p "episodes/video-episodes/$id/ts-files"
+
+    # loop over all the .ts file names and download them from: https://cdn.podimo.com/hls-media/<id>/stream_audio_high/<file>
+    while IFS= read -r line; do
+        curl "https://cdn.podimo.com/hls-media/$id/stream_video_high/$line" \
+            -H 'authority: cdn.podimo.com' \
+            -H 'accept: */*' \
+            -H 'accept-language: da-DK,da;q=0.9' \
+            -H 'dnt: 1' \
+            -H 'origin: https://open.podimo.com' \
+            -H 'referer: https://open.podimo.com/' \
+            -H 'sec-ch-ua: "Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"' \
+            -H 'sec-ch-ua-mobile: ?0' \
+            -H 'sec-ch-ua-platform: "Windows"' \
+            -H 'sec-fetch-dest: empty' \
+            -H 'sec-fetch-mode: cors' \
+            -H 'sec-fetch-site: same-site' \
+            -H 'user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36' \
+            --compressed --output "episodes/video-episodes/$id/ts-files/$line"
+    done <"episodes/video-episodes/$id/stream.m3u8"
+
+done <hasVideoTrue.txt
